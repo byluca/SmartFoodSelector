@@ -69,6 +69,22 @@ class SupervisedTrainer:
 
         return results
 
+    def cross_validate_model(self, model, cv=5):
+        """
+        Esegue la cross-validation per il modello specificato.
+        :param model: Il modello da validare
+        :param cv: Numero di fold per la cross-validation (default: 5)
+        """
+        print(f"Cross-validation per {model.__class__.__name__}...")
+        scores = cross_val_score(model, self.X_train, self.y_train, cv=cv, scoring='f1_macro', n_jobs=-1)
+        print(f"F1 scores: {scores}")
+        print(f"Mean F1 score: {np.mean(scores):.4f}")
+        print(f"Deviazione Standard: {np.std(scores):.6f}")
+        print(f"Varianza: {np.var(scores):.6f}\n")
+
+
+
+
     def plot_model_performance(self, results):
         df = pd.DataFrame(results)
         metrics = ["Accuracy", "F1", "Precision", "Recall"]

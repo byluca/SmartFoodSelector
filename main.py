@@ -1,5 +1,7 @@
 import pandas as pd  # Import necessario per leggere il dataset
 import matplotlib
+import os
+
 matplotlib.use('TkAgg')  # Backend per mostrare i grafici
 import matplotlib.pyplot as plt
 import time  # Per monitorare i tempi di esecuzione
@@ -8,6 +10,7 @@ from src.unsupervised_clustering import ClusteringManager, plot_cluster_pie_char
 from src.supervised_models import SupervisedTrainer
 from src.bayes_net import BayesianNetworkBuilder
 from src.prolog_interface import PrologInterface
+
 
 def main():
     print("Inizio del programma...")
@@ -39,7 +42,7 @@ def main():
     print("3) Training e valutazione dei modelli...")
     start = time.time()
     trainer = SupervisedTrainer("data/clustered_dataset.csv")
-    trainer.load_data(sample_fraction=0.05).train_test_split().resample_data()
+    trainer.load_data(sample_fraction=1.0).train_test_split().resample_data()
     models = trainer.train_models()
 
     # Valutazione dei modelli
@@ -62,13 +65,18 @@ def main():
         .query_network()
     print(f"Rete bayesiana completata in {time.time() - start:.2f} secondi.\n")
 
-    # 5) Interfaccia Prolog
-    print("5) Query Prolog...")
-    start = time.time()
-    PrologInterface("prolog/knowledge_base.pl").query_prolog()
-    print(f"Query Prolog completata in {time.time() - start:.2f} secondi.\n")
+    # 5) Interfaccia Prolog (commentato per non essere eseguito durante il main)
+    # print("5) Query Prolog...")
+    # start = time.time()
+    # Correggi il percorso usando os.path.abspath() e sostituisci backslash con forward slash
+    # prolog_path = os.path.abspath("prolog/knowledge_base.pl").replace("\\", "/")
+    # print(f"Percorso Prolog normalizzato: {prolog_path}")  # Debug per confermare il percorso
+
+    # PrologInterface(prolog_path).query_prolog()
+    # print(f"Query Prolog completata in {time.time() - start:.2f} secondi.\n")
 
     print(f"Programma completato in {time.time() - start_program:.2f} secondi.")
+
 
 if __name__ == "__main__":
     main()
