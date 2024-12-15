@@ -1,9 +1,13 @@
 # main.py
 
-from src.bayes_net import build_and_query_bayes_net
 from src.dataset_preprocessing import load_and_preprocess_data
-from src.supervised_models import train_and_evaluate_supervised
 from src.unsupervised_clustering import find_optimal_k, assign_clusters
+from src.supervised_models import train_and_evaluate_supervised
+from src.bayes_net import build_and_query_bayes_net
+from src.prolog_interface import query_prolog
+import subprocess
+import sys
+import os
 
 
 def main():
@@ -21,6 +25,8 @@ def main():
     build_and_query_bayes_net("data/clustered_dataset.csv")
 
 
+    # 6) Query a Prolog tramite pyswip
+    query_prolog()
 
 
 if __name__ == "__main__":
