@@ -1,6 +1,8 @@
 # 🥗 **SmartFoodSelector**
 
-![SmartFoodSelector](food.png)
+<div align="center">
+  <img src="https://github.com/byluca/SmartFoodSelector/blob/main/food.png" alt="Monkey Interpreter Logo" width="300" height="300">
+</div>
 
 ---
 
