@@ -1,7 +1,7 @@
 # 🥗 **SmartFoodSelector**
 
 <div align="center">
-  <img src="https://github.com/byluca/SmartFoodSelector/blob/main/food.png" alt="Monkey Interpreter Logo" width="300" height="300">
+  <img src="https://github.com/byluca/SmartFoodSelector/blob/main/food.png" alt="Monkey Interpreter Logo" width="600" height="600">
 </div>
 
 ---
