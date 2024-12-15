@@ -1,3 +1,4 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 data/en.openfoodfacts.org.products.tsv filter=lfs diff=lfs merge=lfs -text
+prolog/knowledge_base.pl filter=lfs diff=lfs merge=lfs -text
