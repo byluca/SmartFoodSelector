@@ -3,23 +3,24 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 
-def load_and_preprocess_data(input_file: str, output_file: str):
-    # Carica il dataset TSV con Pandas
-    df = pd.read_csv(input_file, sep='\t', low_memory=False)
+class DataPreprocessor:
+    def __init__(self, input_file, output_file):
+        self.input_file = input_file
+        self.output_file = output_file
+        self.df = None
 
-    # Seleziona un sottoinsieme di feature numeriche per esempio:
-    # energy_100g, fat_100g, carbohydrates_100g, sugars_100g, proteins_100g, salt_100g
-    # Ci assicuriamo che le colonne esistano
-    desired_cols = ['energy_100g', 'fat_100g', 'carbohydrates_100g', 'sugars_100g', 'proteins_100g', 'salt_100g']
-    df = df[desired_cols]
+    def load_data(self):
+        self.df = pd.read_csv(self.input_file, sep='\t', low_memory=False)
+        return self
 
-    # Rimuoviamo righe con troppi NaN
-    df = df.dropna()
+    def preprocess(self):
+        desired_cols = ['energy_100g', 'fat_100g', 'carbohydrates_100g', 'sugars_100g', 'proteins_100g', 'salt_100g']
+        self.df = self.df[desired_cols].dropna()
+        scaler = MinMaxScaler()
+        self.df = pd.DataFrame(scaler.fit_transform(self.df), columns=self.df.columns)
+        return self
 
-    # Normalizzazione tra 0 e 1 con MinMax
-    scaler = MinMaxScaler()
-    df_norm = pd.DataFrame(scaler.fit_transform(df), columns=df.columns)
-
-    # Salviamo il dataset preprocessato
-    df_norm.to_csv(output_file, index=False)
-    print("Preprocessing completato, dati salvati in:", output_file)
+    def save(self):
+        self.df.to_csv(self.output_file, index=False)
+        print("Preprocessing completato, dati salvati in:", self.output_file)
+        return self

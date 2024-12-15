@@ -1,13 +1,12 @@
-# src/prolog_interface.py
 from pyswip import Prolog
 
-def query_prolog():
-    prolog = Prolog()
-    prolog.consult("prolog/knowledge_base.pl")
-    # Esegui una query di esempio:
-    # product_info(E,F,C,Su,P,Sa,Cl)
-    # Otteniamo tutti i fatti
-    result = list(prolog.query("product_info(E,F,C,Su,P,Sa,Cl)"))
-    for r in result:
-        # r è un dizionario con chiavi 'E','F','C','Su','P','Sa','Cl'
-        print(r)
+class PrologInterface:
+    def __init__(self, kb_file):
+        self.kb_file = kb_file
+
+    def query_prolog(self, query_str="product_info(E,F,C,Su,P,Sa,Cl)"):
+        prolog = Prolog()
+        prolog.consult(self.kb_file)
+        results = list(prolog.query(query_str))
+        for r in results:
+            print(r)
