@@ -1,6 +1,7 @@
 import seaborn as sns
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import learning_curve
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -100,3 +101,46 @@ class SupervisedTrainer:
         plt.savefig("data/model_performance_comparison.png")
         print("Grafico salvato in: data/model_performance_comparison.png")
         plt.show()
+
+
+    def plot_learning_curve(self, model, title, cv=5, scoring="f1_macro", train_sizes=np.linspace(0.1, 1.0, 5)):
+        """
+        Genera un grafico semplice della curva di apprendimento per il modello dato.
+        :param model: Modello da analizzare
+        :param title: Titolo del grafico
+        :param cv: Numero di fold per la cross-validation
+        :param scoring: Metriche per la valutazione
+        :param train_sizes: Percentuali del dataset da usare per il training
+        """
+        print(f"Generazione della curva di apprendimento per {title}...")
+
+        # Calcola le curve di apprendimento
+        train_sizes, train_scores, test_scores = learning_curve(
+            model, self.X_train, self.y_train, cv=cv, scoring=scoring, n_jobs=-1, train_sizes=train_sizes)
+
+        # Media dei punteggi
+        train_mean = np.mean(train_scores, axis=1)
+        test_mean = np.mean(test_scores, axis=1)
+
+        # Genera il grafico semplice
+        plt.figure(figsize=(8, 6))
+        plt.plot(train_sizes, train_mean, marker='o', label="Training Score", linestyle='-', color="blue")
+        plt.plot(train_sizes, test_mean, marker='o', label="Validation Score", linestyle='--', color="orange")
+        plt.title(f"Curva di Apprendimento - {title}")
+        plt.xlabel("Dimensione del Training Set")
+        plt.ylabel("F1 Score")
+        plt.legend(loc="best")
+        plt.grid(True, linestyle="--", alpha=0.6)
+        plt.tight_layout()
+
+        # Salva il grafico
+        filename = f"data/learning_curve_{title.lower().replace(' ', '_')}.png"
+        plt.savefig(filename)
+        print(f"Grafico salvato in: {filename}")
+        plt.show()
+
+
+
+
+
+

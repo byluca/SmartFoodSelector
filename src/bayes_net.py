@@ -1,37 +1,95 @@
+import networkx as nx
 import pandas as pd
-from sklearn.preprocessing import KBinsDiscretizer
-from pgmpy.estimators import HillClimbSearch, BicScore, MaximumLikelihoodEstimator
+import matplotlib.pyplot as plt
 from pgmpy.models import BayesianNetwork
-from pgmpy.inference import VariableElimination
+from pgmpy.estimators import HillClimbSearch, BicScore
+from pgmpy.estimators import MaximumLikelihoodEstimator
+from sklearn.preprocessing import KBinsDiscretizer
+
 
 class BayesianNetworkBuilder:
     def __init__(self, data_file):
         self.data_file = data_file
-        self.df = None
         self.model = None
+        self.data = None
 
-    def load_and_discretize(self):
+    def load_and_discretize(self, n_bins=5, strategy='uniform'):
+        """
+        Carica i dati e li discretizza opzionalmente.
+        :param n_bins: Numero di bin per la discretizzazione (default: 5).
+        :param strategy: Strategia di discretizzazione ('uniform', 'quantile', 'kmeans') o None per dati continui.
+        """
+        print("Caricamento e preparazione dei dati...")
         df = pd.read_csv(self.data_file)
-        cols = df.columns.drop('cluster')
-        disc = KBinsDiscretizer(n_bins=3, encode='ordinal', strategy='quantile')
-        df[cols] = disc.fit_transform(df[cols])
-        df = df.astype(int)
-        df.to_csv("data/discrete_dataset.csv", index=False)
-        self.df = df
+        if strategy:
+            # Discretizzazione
+            print(f"Discretizzazione dei dati con {n_bins} bin e strategia '{strategy}'...")
+            discretizer = KBinsDiscretizer(n_bins=n_bins, encode='ordinal', strategy=strategy)
+            cols_to_discretize = df.columns
+            df[cols_to_discretize] = discretizer.fit_transform(df[cols_to_discretize])
+            print("Discretizzazione completata!")
+        else:
+            print("Utilizzo dei dati continui senza discretizzazione...")
+
+        self.data = df
         return self
 
-    def learn_structure(self, sample_size=2000):
-        small_df = self.df.sample(sample_size, random_state=42)
-        hc = HillClimbSearch(small_df)
-        best_model = hc.estimate(scoring_method=BicScore(small_df))
-        self.model = BayesianNetwork(best_model.edges())
-        self.model.fit(small_df, estimator=MaximumLikelihoodEstimator)
+    def learn_structure_continuous(self):
+        """
+        Apprende la struttura della rete bayesiana con dati continui.
+        """
+        print("Apprendimento della struttura della rete bayesiana (valori continui)...")
+        hc = HillClimbSearch(self.data)
+        dag = hc.estimate(scoring_method=BicScore(self.data))
+        self.model = BayesianNetwork(dag.edges())
+        print("Struttura della rete (valori continui) appresa con successo!")
         return self
 
-    def query_network(self):
-        cols = self.df.columns.drop('cluster')
-        inference = VariableElimination(self.model)
-        q = inference.query(variables=['cluster'], evidence={cols[0]: 1})
-        print("Distribuzione P(cluster|{}=1):".format(cols[0]))
-        print(q)
+    def learn_structure_discrete(self):
+        """
+        Apprende la struttura della rete bayesiana con dati discreti.
+        """
+        print("Apprendimento della struttura della rete bayesiana (valori discreti)...")
+        hc = HillClimbSearch(self.data)
+        dag = hc.estimate(scoring_method=BicScore(self.data))
+        self.model = BayesianNetwork(dag.edges())
+        print("Struttura della rete (valori discreti) appresa con successo!")
         return self
+
+    def visualize_network_continuous(self, output_file="data/bayesian_network_continuous.png"):
+        """
+        Genera un grafico della rete bayesiana con valori continui.
+        """
+        if not self.model:
+            raise ValueError("La rete bayesiana non è stata costruita.")
+        print("Generazione del grafico della rete bayesiana (valori continui)...")
+        G = nx.DiGraph()
+        G.add_edges_from(self.model.edges())
+        plt.figure(figsize=(10, 8))
+        pos = nx.spring_layout(G, seed=42)
+        nx.draw(G, pos, with_labels=True, node_size=3000, node_color="skyblue", font_size=10, font_weight="bold",
+                arrowsize=20)
+        plt.title("Rete Bayesiana (Valori Continui)")
+        plt.tight_layout()
+        plt.savefig(output_file)
+        print(f"Grafico salvato in: {output_file}")
+        plt.show()
+
+    def visualize_network_discrete(self, output_file="data/bayesian_network_discrete.png"):
+        """
+        Genera un grafico della rete bayesiana con valori discreti.
+        """
+        if not self.model:
+            raise ValueError("La rete bayesiana non è stata costruita.")
+        print("Generazione del grafico della rete bayesiana (valori discreti)...")
+        G = nx.DiGraph()
+        G.add_edges_from(self.model.edges())
+        plt.figure(figsize=(10, 8))
+        pos = nx.spring_layout(G, seed=42)
+        nx.draw(G, pos, with_labels=True, node_size=3000, node_color="lightgreen", font_size=10, font_weight="bold",
+                arrowsize=20)
+        plt.title("Rete Bayesiana (Valori Discreti)")
+        plt.tight_layout()
+        plt.savefig(output_file)
+        print(f"Grafico salvato in: {output_file}")
+        plt.show()
