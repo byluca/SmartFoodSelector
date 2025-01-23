@@ -1,1 +1,16 @@
-/results
+# File di database e dati locali
+optuna.db
+data/raw/
+data/processed/
+data/results/
+
+# Virtual environment
+.venv/
+venv/
+
+# File IDE/editor
+.idea/
+
+# File generati automaticamente
+__pycache__/
+*.pyc

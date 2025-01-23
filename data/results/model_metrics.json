@@ -1,0 +1,23 @@
+[
+    {
+        "Modello": "Optimized Random Forest",
+        "Accuracy": 0.9717687728058383,
+        "F1": 0.959674953454308,
+        "Precision": 0.956885129419924,
+        "Recall": 0.9625573445524789
+    },
+    {
+        "Modello": "Decision Tree",
+        "Accuracy": 0.9963510658728635,
+        "F1": 0.9949979263623047,
+        "Precision": 0.9944759372285873,
+        "Recall": 0.9955226774725259
+    },
+    {
+        "Modello": "Logistic Regression",
+        "Accuracy": 0.988477050124832,
+        "F1": 0.9844201573489543,
+        "Precision": 0.9803257896186112,
+        "Recall": 0.9887883580635751
+    }
+]
