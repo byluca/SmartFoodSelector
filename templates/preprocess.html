@@ -1,0 +1,23 @@
+<!-- templates/preprocess.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Preprocessing</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Preprocessing</h1>
+        <form method="POST" action="/process_preprocessing">
+            <div class="form-group">
+                <label>Parametri di preprocessing:</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="normalize" name="normalize" checked>
+                    <label class="form-check-label" for="normalize">Normalizza i dati</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Esegui Preprocessing</button>
+        </form>
+    </div>
+</body>
+</html>

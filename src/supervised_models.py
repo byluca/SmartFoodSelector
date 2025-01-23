@@ -1,42 +1,22 @@
-# src/supervised_models.py
-
 import seaborn as sns
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import learning_curve
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split, cross_val_score, learning_curve
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from imblearn.over_sampling import SMOTE
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 import matplotlib.pyplot as plt
+import optuna
+import shap
+import plotly.express as px
+import json
+import os
 
 
 class SupervisedTrainer:
-    """
-    Classe che si occupa dell'addestramento di modelli di classificazione (supervisionati)
-    per prevedere il cluster a cui appartiene un prodotto.
-
-    Utilizza Decision Tree, Random Forest e Logistic Regression come modelli di default.
-
-    Attributes:
-        data_file (str): Il percorso del file CSV contenente il dataset già clusterizzato.
-        X (pd.DataFrame): Variabili esplicative (feature) estratte dal dataset.
-        y (pd.Series): Variabile target (cluster).
-        X_train (pd.DataFrame): Dati di training.
-        X_test (pd.DataFrame): Dati di test.
-        y_train (pd.Series): Label di training.
-        y_test (pd.Series): Label di test.
-    """
-
     def __init__(self, data_file):
-        """
-        Inizializza il trainer con il percorso del dataset da utilizzare.
-
-        Args:
-            data_file (str): Percorso del file CSV (già clusterizzato) da cui caricare i dati.
-        """
         self.data_file = data_file
         self.X = None
         self.y = None
@@ -46,181 +26,172 @@ class SupervisedTrainer:
         self.y_test = None
 
     def load_data(self, sample_fraction=0.1):
-        """
-        Carica il dataset e ne estrae una frazione casuale per l'allenamento,
-        utile quando il dataset è molto grande.
-
-        Args:
-            sample_fraction (float, optional): Frazione di dati da estrarre dal dataset
-                originale (default: 0.1, ossia il 10%).
-
-        Returns:
-            SupervisedTrainer: L'istanza corrente per concatenare i metodi.
-        """
         df = pd.read_csv(self.data_file)
         df = df.sample(frac=sample_fraction, random_state=42)
-        print(f"Caricati {len(df)} campioni su {len(pd.read_csv(self.data_file))} totali")
         self.X = df.drop('cluster', axis=1)
         self.y = df['cluster']
         return self
 
     def train_test_split(self, test_size=0.2, random_state=42):
-        """
-        Suddivide il dataset in training set e test set.
-
-        Args:
-            test_size (float, optional): Percentuale di dati da destinare al test (default: 0.2).
-            random_state (int, optional): Semina per la riproducibilità dello split (default: 42).
-
-        Returns:
-            SupervisedTrainer: L'istanza corrente per concatenare i metodi.
-        """
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             self.X, self.y, test_size=test_size, random_state=random_state
         )
         return self
 
     def resample_data(self):
-        """
-        Applica la tecnica SMOTE (Synthetic Minority Over-sampling TEchnique) sul training set
-        per bilanciare le classi in caso di dataset sbilanciati.
-
-        Returns:
-            SupervisedTrainer: L'istanza corrente per concatenare i metodi.
-        """
         sm = SMOTE(random_state=42)
         self.X_train, self.y_train = sm.fit_resample(self.X_train, self.y_train)
         return self
 
+    def optimize_hyperparameters(self, n_trials=10):
+        def objective(trial):
+            params = {
+                'n_estimators': trial.suggest_int('n_estimators', 50, 200),
+                'max_depth': trial.suggest_int('max_depth', 3, 15),
+                'min_samples_split': trial.suggest_float('min_samples_split', 0.1, 1.0),
+                'bootstrap': trial.suggest_categorical('bootstrap', [True, False])
+            }
+            model = RandomForestClassifier(**params, random_state=42)
+            return cross_val_score(model, self.X_train, self.y_train,
+                                   scoring='f1_macro', cv=5).mean()
+
+        study = optuna.create_study(direction='maximize')
+        study.optimize(objective, n_trials=n_trials)
+
+        trials_df = study.trials_dataframe()
+        trials_df.to_csv("data/results/hyperparameter_trials.csv", index=False)
+
+        return study.best_params
+
     def train_models(self):
-        """
-        Addestra tre modelli di classificazione: Decision Tree, Random Forest e
-        Logistic Regression.
+        best_params = self.optimize_hyperparameters()
 
-        I modelli sono istanziati con iperparametri di base (o leggermente custom).
-        È possibile modificare a piacere tali parametri.
+        # Definisci la lista dei modelli
+        models = [
+            ("Optimized Random Forest", RandomForestClassifier(**best_params, random_state=42)),
+            ("Decision Tree", DecisionTreeClassifier(random_state=42, max_depth=10, min_samples_split=5)),
+            ("Logistic Regression", LogisticRegression(random_state=42, max_iter=200))
+        ]
 
-        Returns:
-            list: Una lista di tuple (modello_nome, modello_istanza).
-        """
-        dt = DecisionTreeClassifier(random_state=42, max_depth=10, min_samples_split=5)
-        rf = RandomForestClassifier(random_state=42, n_estimators=50, max_depth=10)
-        lr = LogisticRegression(random_state=42, max_iter=200)
+        # Addestra tutti i modelli
+        for name, model in models:
+            model.fit(self.X_train, self.y_train)
 
-        dt.fit(self.X_train, self.y_train)
-        rf.fit(self.X_train, self.y_train)
-        lr.fit(self.X_train, self.y_train)
-
-        return [("Decision Tree", dt), ("Random Forest", rf), ("Logistic Regression", lr)]
+        return models  # Restituisci la lista dei modelli addestrati
 
     def evaluate_models_with_metrics(self, models):
-        """
-        Valuta i modelli addestrati tramite metriche di accuratezza, F1, precision e recall,
-        calcolate sul test set.
-
-        Args:
-            models (list): Lista di tuple (nome_modello, istanza_modello) da valutare.
-
-        Returns:
-            list[dict]: Lista di dizionari con le metriche per ogni modello.
-        """
         results = []
         for name, model in models:
             y_pred = model.predict(self.X_test)
-            accuracy = accuracy_score(self.y_test, y_pred)
-            f1 = f1_score(self.y_test, y_pred, average='macro')
-            precision = precision_score(self.y_test, y_pred, average='macro')
-            recall = recall_score(self.y_test, y_pred, average='macro')
+
+            self.plot_feature_importance(model, "data/results/plots")
+            self.explain_model_shap(model, self.X_test.sample(50, random_state=42))
 
             results.append({
                 "Modello": name,
-                "Accuracy": accuracy,
-                "F1": f1,
-                "Precision": precision,
-                "Recall": recall
+                "Accuracy": accuracy_score(self.y_test, y_pred),
+                "F1": f1_score(self.y_test, y_pred, average='macro'),
+                "Precision": precision_score(self.y_test, y_pred, average='macro'),
+                "Recall": recall_score(self.y_test, y_pred, average='macro')
             })
 
+        self.save_metrics_to_dvc(results)
         return results
 
+    def plot_feature_importance(self, model, output_path):
+        # Crea la directory se non esiste
+        os.makedirs(output_path, exist_ok=True)
+        if hasattr(model, 'feature_importances_'):
+            importances = model.feature_importances_
+        elif hasattr(model, 'coef_'):
+            importances = np.abs(model.coef_[0])
+        else:
+            return
+
+        sorted_idx = np.argsort(importances)[::-1]
+
+        # Static plot
+        plt.figure(figsize=(10, 6))
+        plt.barh(np.array(self.X.columns)[sorted_idx], importances[sorted_idx])
+        plt.title("Feature Importance")
+        plt.tight_layout()
+        plt.savefig(f"{output_path}/feature_importance.png")
+        plt.close()
+
+        # Interactive plot
+        fig = px.bar(x=importances[sorted_idx],
+                     y=np.array(self.X.columns)[sorted_idx],
+                     orientation='h',
+                     title="Feature Importance",
+                     labels={'x': 'Importance', 'y': 'Feature'})
+        fig.write_html(f"{output_path}/feature_importance_interactive.html")
+
+    def explain_model_shap(self, model, X_sample):
+        # Seleziona l'explainer appropriato in base al tipo di modello
+        try:
+            if isinstance(model, (RandomForestClassifier, DecisionTreeClassifier)):
+                explainer = shap.TreeExplainer(model)
+                shap_values = explainer.shap_values(X_sample)
+            elif isinstance(model, LogisticRegression):
+                explainer = shap.LinearExplainer(model, X_sample)
+                shap_values = explainer.shap_values(X_sample)
+            else:
+                explainer = shap.KernelExplainer(model.predict_proba, X_sample)
+                shap_values = explainer.shap_values(X_sample)
+
+            # Genera il plot solo se i valori SHAP sono validi
+            plt.figure()
+            if isinstance(model, LogisticRegression):
+                shap.summary_plot(shap_values, X_sample, feature_names=self.X.columns, show=False)
+            else:
+                shap.summary_plot(shap_values, X_sample, show=False)
+
+            plt.savefig("data/results/plots/shap_summary.png", bbox_inches='tight')
+            plt.close()
+
+        except Exception as e:
+            print(f"Errore nella spiegazione SHAP per {type(model).__name__}: {str(e)}")
+
     def cross_validate_model(self, model, cv=5):
-        """
-        Esegue la cross-validation (K-Fold) sul training set per il modello specificato
-        usando F1 come metrica.
-
-        Args:
-            model: Modello scikit-learn da validare (ad es. DecisionTreeClassifier).
-            cv (int, optional): Numero di fold per la cross-validation (default: 5).
-
-        Prints:
-            F1 scores, media, deviazione standard e varianza.
-        """
-        print(f"Cross-validation per {model.__class__.__name__}...")
-        scores = cross_val_score(model, self.X_train, self.y_train, cv=cv,
-                                 scoring='f1_macro', n_jobs=-1)
+        scores = cross_val_score(model, self.X_train, self.y_train, cv=cv, scoring='f1_macro')
         print(f"F1 scores: {scores}")
-        print(f"Mean F1 score: {np.mean(scores):.4f}")
-        print(f"Deviazione Standard: {np.std(scores):.6f}")
-        print(f"Varianza: {np.var(scores):.6f}\n")
+        print(f"Mean F1: {np.mean(scores):.4f}")
+        print(f"Std Dev: {np.std(scores):.4f}\n")
 
     def plot_model_performance(self, results):
-        """
-        Crea un grafico a barre per confrontare le metriche di performance
-        (Accuracy, F1, Precision, Recall) tra i modelli.
-
-        Args:
-            results (list[dict]): Lista di dizionari con i risultati di evaluate_models_with_metrics().
-        """
         df = pd.DataFrame(results)
         metrics = ["Accuracy", "F1", "Precision", "Recall"]
-        df_melted = df.melt(id_vars="Modello", value_vars=metrics, var_name="Metrica", value_name="Valore")
 
-        plt.figure(figsize=(10, 6))
-        sns.barplot(x="Modello", y="Valore", hue="Metrica", data=df_melted)
-        plt.title("Confronto delle Metriche dei Modelli")
+        plt.figure(figsize=(12, 8))
+        sns.barplot(data=df.melt(id_vars="Modello", value_vars=metrics),
+                    x="Modello", y="value", hue="variable")
+        plt.title("Model Performance Comparison")
+        plt.ylabel("Score")
         plt.xticks(rotation=45)
-        plt.ylabel("Valore")
-        plt.legend(loc="best")
         plt.tight_layout()
-        plt.savefig("data/model_performance_comparison.png")
-        print("Grafico salvato in: data/model_performance_comparison.png")
-        plt.show()
+        plt.savefig("data/results/plots/model_performance_comparison.png")
+        plt.close()
 
     def plot_learning_curve(self, model, title, cv=5, scoring="f1_macro",
-                           train_sizes=np.linspace(0.1, 1.0, 5)):
-        """
-        Genera un semplice grafico di curva di apprendimento (learning curve) per
-        il modello specificato, mostrando come varia la metrica di valutazione
-        in funzione della dimensione del training set.
-
-        Args:
-            model: Il modello scikit-learn di cui tracciare la curva di apprendimento.
-            title (str): Titolo del grafico.
-            cv (int, optional): Numero di fold per la cross-validation (default: 5).
-            scoring (str, optional): Metrica di valutazione (default: 'f1_macro').
-            train_sizes (array-like, optional): Percentuali del dataset da usare
-                per il training (default: np.linspace(0.1, 1.0, 5)).
-        """
-        print(f"Generazione della curva di apprendimento per {title}...")
+                            train_sizes=np.linspace(0.1, 1.0, 5)):
         train_sizes, train_scores, test_scores = learning_curve(
             model, self.X_train, self.y_train, cv=cv, scoring=scoring,
-            n_jobs=-1, train_sizes=train_sizes)
+            n_jobs=-1, train_sizes=train_sizes
+        )
 
-        train_mean = np.mean(train_scores, axis=1)
-        test_mean = np.mean(test_scores, axis=1)
-
-        plt.figure(figsize=(8, 6))
-        plt.plot(train_sizes, train_mean, marker='o', label="Training Score",
-                 linestyle='-', color="blue")
-        plt.plot(train_sizes, test_mean, marker='o', label="Validation Score",
-                 linestyle='--', color="orange")
-        plt.title(f"Curva di Apprendimento - {title}")
-        plt.xlabel("Dimensione del Training Set")
+        plt.figure(figsize=(10, 6))
+        plt.plot(train_sizes, np.mean(train_scores, axis=1), 'o-', label="Training Score")
+        plt.plot(train_sizes, np.mean(test_scores, axis=1), 'o-', label="Validation Score")
+        plt.title(f"Learning Curve - {title}")
+        plt.xlabel("Training Examples")
         plt.ylabel("F1 Score")
-        plt.legend(loc="best")
-        plt.grid(True, linestyle="--", alpha=0.6)
-        plt.tight_layout()
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f"data/results/plots/learning_curve_{title.lower().replace(' ', '_')}.png")
+        plt.close()
 
-        filename = f"data/learning_curve_{title.lower().replace(' ', '_')}.png"
-        plt.savefig(filename)
-        print(f"Grafico salvato in: {filename}")
-        plt.show()
+    def save_metrics_to_dvc(self, metrics):
+        with open("data/results/model_metrics.json", 'w') as f:
+            json.dump(metrics, f, indent=4)
+
+        os.system

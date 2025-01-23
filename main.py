@@ -1,5 +1,4 @@
-# main.py (Esempio di "script" principale che coordina i vari step)
-
+# main.py (Aggiornato per la nuova struttura)
 import pandas as pd
 import matplotlib.pyplot as plt
 import time
@@ -8,16 +7,15 @@ from src.unsupervised_clustering import ClusteringManager, plot_cluster_pie_char
 from src.supervised_models import SupervisedTrainer
 from src.bayes_net import BayesianNetworkBuilder
 
+# Percorsi aggiornati secondo la nuova struttura
+RAW_DATA = "data/raw/en.openfoodfacts.org.products.tsv"
+PREPROCESSED_DATA = "data/processed/newDataset.csv"
+CLUSTERED_DATA = "data/results/clustered_dataset.csv"
+PLOTS_DIR = "data/results/plots/"
+
 
 def preprocess_data(input_file, output_file):
-    """
-    Preprocessa i dati caricando il file, selezionando e pulendo le feature,
-    e normalizzandole tramite MinMaxScaler.
-
-    Args:
-        input_file (str): Percorso del file originale (in formato .tsv, ad es. openfoodfacts).
-        output_file (str): Percorso del file CSV su cui salvare il dataset preprocessato.
-    """
+    """..."""  # Mantieni la docstring originale
     print("1) Preprocessing dei dati...")
     start = time.time()
     DataPreprocessor(input_file, output_file).load_data().preprocess().save()
@@ -25,15 +23,7 @@ def preprocess_data(input_file, output_file):
 
 
 def perform_clustering(input_file, output_file, elbow=3):
-    """
-    Esegue il clustering k-Means sul dataset preprocessato, partendo da un valore
-    suggerito di k (elbow).
-
-    Args:
-        input_file (str): Percorso del file CSV preprocessato.
-        output_file (str): Percorso del file CSV dove salvare i dati con i cluster assegnati.
-        elbow (int, optional): Numero di cluster da utilizzare, di default 3.
-    """
+    """..."""  # Mantieni la docstring originale
     print("2) Clustering dei dati...")
     start = time.time()
     cluster_mgr = ClusteringManager(input_file)
@@ -42,27 +32,14 @@ def perform_clustering(input_file, output_file, elbow=3):
 
 
 def plot_clustering_results(file_path, cluster_column='cluster'):
-    """
-    Genera un grafico a torta per visualizzare la distribuzione dei cluster.
-
-    Args:
-        file_path (str): Percorso del file CSV contenente i dati clusterizzati.
-        cluster_column (str, optional): Nome della colonna dei cluster (default: 'cluster').
-    """
+    """..."""  # Mantieni la docstring originale
     print("Generazione del grafico a torta per il clustering...")
     clustered_df = pd.read_csv(file_path)
     plot_cluster_pie_chart(clustered_df, cluster_column=cluster_column)
 
 
 def train_and_evaluate_models(input_file):
-    """
-    Carica i dati clusterizzati, allena tre modelli di classificazione (Decision Tree,
-    Random Forest, Logistic Regression) e ne valuta le prestazioni tramite metriche e
-    learning curve.
-
-    Args:
-        input_file (str): Percorso del file CSV contenente i dati clusterizzati.
-    """
+    """..."""  # Mantieni la docstring originale
     print("3) Training e valutazione dei modelli...")
     start = time.time()
     trainer = SupervisedTrainer(input_file)
@@ -81,58 +58,36 @@ def train_and_evaluate_models(input_file):
 
 
 def build_bayesian_network(input_file):
-    """
-    Crea due varianti di Rete Bayesiana (continua e discreta) a partire dal dataset
-    clusterizzato, visualizzandole e salvando i relativi grafici su file.
-
-    Args:
-        input_file (str): Percorso del file CSV clusterizzato.
-    """
+    """..."""  # Mantieni la docstring originale
     print("4) Creazione della rete bayesiana...")
     print("Creazione della rete bayesiana con valori continui...")
     bayesian_builder = BayesianNetworkBuilder(input_file)
-    # Rete con valori continui (strategy=None)
+
+    # Rete continua
     bayesian_builder.load_and_discretize(strategy=None).learn_structure_continuous()
-    bayesian_builder.visualize_network_continuous(output_file="data/bayesian_network_continuous.png")
+    bayesian_builder.visualize_network_continuous(
+        output_file=f"{PLOTS_DIR}bayesian_network_continuous.png"
+    )
 
     print("Creazione della rete bayesiana con valori discreti...")
-    # Rete con valori discretizzati
+    # Rete discreta
     bayesian_builder.load_and_discretize(n_bins=5, strategy='uniform').learn_structure_discrete()
-    bayesian_builder.visualize_network_discrete(output_file="data/bayesian_network_discrete.png")
-
-    # Se necessario, si potrebbe aggiungere la stima dei parametri (CPD) o inferenze.
+    bayesian_builder.visualize_network_discrete(
+        output_file=f"{PLOTS_DIR}bayesian_network_discrete.png"
+    )
 
 
 def main():
-    """
-    Funzione principale che coordina tutti gli step del flusso:
-    1) Preprocessing
-    2) Clustering
-    3) Visualizzazione cluster
-    4) Training e valutazione modelli
-    5) Creazione Rete Bayesiana.
-    """
+    """..."""  # Mantieni la docstring originale
     print("Inizio del programma...")
     start_program = time.time()
 
-    input_file = "data/en.openfoodfacts.org.products.tsv"
-    preprocessed_file = "data/newDataset.csv"
-    clustered_file = "data/clustered_dataset.csv"
-
-    # 1. Preprocessing
-    preprocess_data(input_file, preprocessed_file)
-
-    # 2. Clustering
-    perform_clustering(preprocessed_file, clustered_file)
-
-    # Visualizzazione dei risultati del clustering
-    plot_clustering_results(clustered_file)
-
-    # 3. Training e valutazione modelli supervisionati
-    train_and_evaluate_models(clustered_file)
-
-    # 4. Creazione rete bayesiana (continua e discreta)
-    build_bayesian_network(clustered_file)
+    # Utilizza i percorsi costanti definiti sopra
+    preprocess_data(RAW_DATA, PREPROCESSED_DATA)
+    perform_clustering(PREPROCESSED_DATA, CLUSTERED_DATA)
+    plot_clustering_results(CLUSTERED_DATA)
+    train_and_evaluate_models(CLUSTERED_DATA)
+    build_bayesian_network(CLUSTERED_DATA)
 
     print(f"Programma completato in {time.time() - start_program:.2f} secondi.")
 

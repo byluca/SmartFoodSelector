@@ -1,0 +1,19 @@
+<!-- templates/upload.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Food Analysis - Upload</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Carica il tuo dataset</h1>
+        <form method="POST" action="/upload" enctype="multipart/form-data">
+            <div class="form-group">
+                <input type="file" class="form-control-file" name="file" accept=".csv,.tsv">
+            </div>
+            <button type="submit" class="btn btn-primary">Carica</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!-- templates/cluster.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clustering</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Configurazione Clustering</h1>
+        <form method="POST" action="/process_clustering">
+            <div class="form-group">
+                <label>Numero di cluster:</label>
+                <input type="number" class="form-control" name="k" value="3" min="2" max="10">
+            </div>
+            <button type="submit" class="btn btn-primary">Esegui Clustering</button>
+        </form>
+    </div>
+</body>
+</html>
