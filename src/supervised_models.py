@@ -25,7 +25,7 @@ class SupervisedTrainer:
         self.y_train = None
         self.y_test = None
 
-    def load_data(self, sample_fraction=0.1):
+    def load_data(self, sample_fraction=1.0):
         df = pd.read_csv(self.data_file)
         df = df.sample(frac=sample_fraction, random_state=42)
         self.X = df.drop('cluster', axis=1)
@@ -44,20 +44,36 @@ class SupervisedTrainer:
         return self
 
     def optimize_hyperparameters(self, n_trials=10):
+        print("Inizio ottimizzazione dei parametri del modello Random Forest...")
+
         def objective(trial):
+            # Suggerimento dei parametri da testare
             params = {
                 'n_estimators': trial.suggest_int('n_estimators', 50, 200),
                 'max_depth': trial.suggest_int('max_depth', 3, 15),
                 'min_samples_split': trial.suggest_float('min_samples_split', 0.1, 1.0),
                 'bootstrap': trial.suggest_categorical('bootstrap', [True, False])
             }
-            model = RandomForestClassifier(**params, random_state=42)
-            return cross_val_score(model, self.X_train, self.y_train,
-                                   scoring='f1_macro', cv=5).mean()
+            print(f"\n[Trial {trial.number + 1}] Provo con i seguenti parametri: {params}")
 
+            # Creazione del modello con i parametri scelti
+            model = RandomForestClassifier(**params, random_state=42)
+            # Valutazione del modello con validazione incrociata usando il punteggio F1 macro
+            score = cross_val_score(model, self.X_train, self.y_train,
+                                    scoring='f1_macro', cv=5).mean()
+            print(f"[Trial {trial.number + 1}] F1 score medio ottenuto: {score:.4f}")
+            return score
+
+        # Crea lo studio di ottimizzazione e massimizza il punteggio F1 macro
         study = optuna.create_study(direction='maximize')
         study.optimize(objective, n_trials=n_trials)
 
+        print("\nOttimizzazione completata!")
+        print("I migliori parametri trovati sono:")
+        for key, value in study.best_params.items():
+            print(f" - {key}: {value}")
+
+        # Salva i risultati di tutti i trial in un file CSV
         trials_df = study.trials_dataframe()
         trials_df.to_csv("data/results/hyperparameter_trials.csv", index=False)
 

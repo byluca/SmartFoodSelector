@@ -1,10 +1,10 @@
 [
     {
         "Modello": "Optimized Random Forest",
-        "Accuracy": 0.9717687728058383,
-        "F1": 0.959674953454308,
-        "Precision": 0.956885129419924,
-        "Recall": 0.9625573445524789
+        "Accuracy": 0.9727290186287689,
+        "F1": 0.9609962746896,
+        "Precision": 0.9582185211415651,
+        "Recall": 0.9638599601477343
     },
     {
         "Modello": "Decision Tree",

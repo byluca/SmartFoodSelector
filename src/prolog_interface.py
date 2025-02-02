@@ -2,51 +2,51 @@
 
 import os
 from pyswip import Prolog
+from typing import List, Dict
 
 
 class PrologInterface:
-    """
-    Classe che fornisce un'interfaccia per caricare e interrogare la knowledge base di Prolog.
-    Utilizza la libreria pyswip.
+    def __init__(self, kb_file: str):
+        self.kb_file = os.path.abspath(kb_file)
+        self._validate_kb_file()
 
-    Attributes:
-        kb_file (str): Percorso assoluto del file Prolog contenente la knowledge base.
-    """
+    def _validate_kb_file(self):
+        """Esegue controlli preliminari sul file della KB"""
+        if not os.path.exists(self.kb_file):
+            raise FileNotFoundError(f"File {self.kb_file} non trovato")
 
-    def __init__(self, kb_file):
-        """
-        Inizializza la classe con il percorso del file di knowledge base Prolog.
+        if os.path.getsize(self.kb_file) < 100:
+            raise ValueError("La knowledge base sembra vuota o non valida")
 
-        Args:
-            kb_file (str): Percorso del file .pl contenente la knowledge base.
-        """
-        self.kb_file = os.path.abspath(kb_file).replace("\\", "/")
-        print(f"Percorso della knowledge base: {self.kb_file}")  # Debug del percorso
-
-    def query_prolog(self):
-        """
-        Consulta la knowledge base di Prolog e gestisce una query di test per verificarne
-        il corretto caricamento.
-
-        Viene utilizzata la query: member(X, [a, b, c]) come esempio.
-        In un progetto reale, si potrebbe arricchire la parte di query e l'interfaccia
-        di input/output.
-
-        Raises:
-            Exception: Se si verifica un errore durante la consultazione del file Prolog.
-        """
+    def query(self, query_str: str) -> List[Dict]:
+        """Esegue una query generica con gestione degli errori"""
         prolog = Prolog()
-        print(f"Consultazione della knowledge base: {self.kb_file}")
+
         try:
             prolog.consult(self.kb_file)
-            print("Knowledge base consultata con successo.")
+            return list(prolog.query(query_str))
         except Exception as e:
-            print(f"Errore durante la consultazione della knowledge base: {e}")
-            raise
+            raise PrologError(f"Errore Prolog: {str(e)}")
 
-        # Query di test per verificare la consultazione
-        try:
-            for result in prolog.query("member(X, [a, b, c])"):
-                print(f"Risultato query di test: {result}")
-        except Exception as e:
-            print(f"Errore durante l'esecuzione della query: {e}")
+    def get_products_in_cluster(self, cluster_id: int) -> List[Dict]:
+        """Query specifica per prodotti in un cluster"""
+        query = f"product_cluster(E, F, C, S, P, Sa, {cluster_id})"
+        return self.query(query)
+
+    def get_cluster_stats(self) -> Dict:
+        """Restituisce statistiche sui cluster"""
+        stats = {}
+        clusters = set(self.query("cluster_assignment(_, _, _, _, _, _, Cluster)"))
+
+        for cluster in clusters:
+            count = len(self.get_products_in_cluster(cluster['Cluster']))
+            stats[cluster['Cluster']] = {
+                'count': count,
+                'features': self._get_cluster_features(cluster['Cluster'])
+            }
+        return stats
+
+    def _get_cluster_features(self, cluster_id: int) -> Dict:
+        """Calcola le medie delle features per cluster"""
+        # Implementa la logica per aggregare le features
+        # usando le query Prolog

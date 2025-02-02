@@ -1,5 +1,5 @@
 # File di database e dati locali
-optuna.db
+*.db
 data/raw/
 data/processed/
 data/results/
@@ -14,3 +14,4 @@ venv/
 # File generati automaticamente
 __pycache__/
 *.pyc
+
