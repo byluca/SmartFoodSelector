@@ -44,7 +44,7 @@ def generate_prolog_kb(input_csv, output_pl, n_bins=5):
 
 if __name__ == "__main__":
     generate_prolog_kb(
-        input_csv="data/processed/discrete_dataset.csv",  # Aggiornato al nuovo nome
+        input_csv="data/processed/clustered_dataset.csv",  # Aggiornato al nuovo nome
         output_pl="prolog/knowledge_base.pl",
         n_bins=5
     )

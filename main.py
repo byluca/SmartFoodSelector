@@ -9,7 +9,7 @@ from src.bayes_net import BayesianNetworkBuilder
 
 # Percorsi aggiornati secondo la nuova struttura
 RAW_DATA = "data/raw/en.openfoodfacts.org.products.tsv"
-PREPROCESSED_DATA = "data/processed/newDataset.csv"
+PREPROCESSED_DATA = "data/processed/Dataset.csv"
 CLUSTERED_DATA = "data/results/clustered_dataset.csv"
 PLOTS_DIR = "data/results/plots/"
 
