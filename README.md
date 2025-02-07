@@ -106,7 +106,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 🌟 **Empower your food decisions with AI and logic!** 🌟  
 
-For full technical details, refer to the [project documentation](Documentazione_Completa.pdf).  
+For full technical details, refer to the [project documentation](Documentazione.pdf).  
 
 ---
 
